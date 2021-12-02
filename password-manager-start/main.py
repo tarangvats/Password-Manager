@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import messagebox
 from random import *
 import pyperclip
+import json
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 
 
@@ -29,13 +30,17 @@ def generate():
 
 
 # ---------------------------- SAVE PASSWORD ------------------------------- #
-import pandas
-
-dict = {}
-dict["website"] = []
-dict["username"] =[]
-dict["password"] = []
-df = pandas.DataFrame(dict)
+# import pandas
+#
+# try:
+#     df = pandas.read_csv("passwords.csv")
+# except FileNotFoundError:
+#
+#     dict = {}
+#     dict["website"] = []
+#     dict["username"] =[]
+#     dict["password"] = []
+#     df = pandas.DataFrame(dict)
 
 def add():
 
@@ -45,19 +50,58 @@ def add():
     else:
 
         isok = messagebox.askokcancel(title = website.get(),message = f"These are the details entered: \nEmail: {email.get()}"
-                                                                f"\nPassword:{password.get()}\n Is it ok to Save?")
+                                                                f"\nPassword:{password.get()}\n ")
+
+
+
+
         if isok:
+            new_data = {
+                         website.get():
+                                {
+                                "email": email.get(),
+                                "password" : password.get()
+                                 }
+
+                        }
             with open("file.txt", 'a') as f:
                 f.write(f"{website.get()} | {email.get()} | {password.get()}\n")
 
-            new_row = [website.get(),email.get(),password.get()]
-            df.loc[len(df.index)] = new_row
-            df.to_csv("passwords.csv")
+            # new_row = [website.get(),email.get(),password.get()]
+            # df.append(new_row)
 
-            website.delete(0, END)
-            password.delete(0, END)
-            messagebox.showinfo(title="Important Update", message="Your password has been saved")
 
+            try:
+                with open("data.json",'r') as data_file:
+                    data = json.load(data_file)
+            except FileNotFoundError:
+                with open("data.json",'w') as data_file:
+                   json.dump(new_data,data_file,indent=4)
+            else:
+                data.update(new_data)
+                with open('data.json','w') as data_file:
+                    json.dump(data,data_file,indent=4)
+            finally:
+                website.delete(0, END)
+                password.delete(0, END)
+                messagebox.showinfo(title="Important Update", message="Your password has been saved")
+
+
+
+
+
+def search():
+    with open("data.json",'r') as f:
+        d = json.load(f)
+    m = d[website.get()]['email']
+    p = d[website.get()]['password']
+
+    if len(website.get()) != 0:
+        messagebox.showinfo(title=website.get(), message=f"These are the details : \nEmail: {m}"
+                                                         f"\nPassword:{p}")
+    pyperclip.copy(p)
+
+# print(df)
 # ---------------------------- UI SETUP ------------------------------- #
 window = Tk()
 window.title("Password Manager")
@@ -101,4 +145,7 @@ Add.grid(column = 1, row =5,columnspan =2)
 
 generate_password = Button(text = "Generate password",command = generate)
 generate_password.grid(column = 2, row =4)
+
+search = Button(text="Search",command = search)
+search.grid(column=3,row=2)
 window.mainloop()
